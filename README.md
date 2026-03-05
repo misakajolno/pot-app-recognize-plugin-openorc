@@ -30,7 +30,13 @@ pot-app-recognize-plugin-openorc/
 pip install openocr-python==0.1.5
 ```
 
-3. 可选：`server + torch` 模式需要额外安装：
+3. 安装英文粘连修复依赖（推荐）：
+
+```bash
+pip install wordninja==2.0.0
+```
+
+4. 可选：`server + torch` 模式需要额外安装：
 
 ```bash
 pip install torch torchvision
@@ -66,5 +72,12 @@ dist/plugin.com.pot-app.openorc.potext
 ## 开发说明
 
 - `main.js` 只做 Pot 侧参数适配、超时与错误处理。
-- `scripts/openorc_bridge.py` 负责调用 OpenOCR 并规整输出。
+- `scripts/openorc_bridge.py` 负责调用 OpenOCR 并规整输出（含英文空格修复）。
 - 插件读取 Pot 的截图缓存路径：`{cacheDir}/pot_screenshot_cut.png`。
+
+## 版本号规则
+
+- 当前版本号写在两个位置，必须一致：
+  - `VERSION`
+  - `info.json` 的 `version`
+- 每次迭代发布时，版本号加 `1`。

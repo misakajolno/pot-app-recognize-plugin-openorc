@@ -5,9 +5,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
+
+try:
+    import wordninja  # type: ignore
+except Exception:  # pragma: no cover
+    wordninja = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -45,6 +51,79 @@ def dedupe_lines(lines: list[str]) -> list[str]:
         seen.add(text)
         output.append(text)
     return output
+
+
+def fix_english_spacing(text: str) -> str:
+    """Fix common missing-space patterns in Latin text."""
+    if not text:
+        return text
+
+    cjk_count = len(re.findall(r"[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]", text))
+    latin_count = len(re.findall(r"[A-Za-z]", text))
+    if cjk_count > latin_count:
+        return text
+
+    fixed = text
+    fixed = re.sub(r"(?<=[0-9,.\-+%@])@(?=[0-9,.\-+%@])", "0", fixed)
+    fixed = re.sub(r"(?<=[0-9,.\-+%@])@(?=[A-Za-z])", "0", fixed)
+    fixed = re.sub(
+        r"(?<![A-Za-z])[@0-9][@0-9,.\-+%]*(?![A-Za-z])",
+        lambda m: normalize_numeric_token(m.group(0)),
+        fixed,
+    )
+    fixed = re.sub(
+        r"\b(\d),(\d),(\d{3})(?=\b|[A-Za-z])",
+        lambda m: f"{m.group(1)}{m.group(2)},{m.group(3)}",
+        fixed,
+    )
+    fixed = re.sub(r"([;:!?])(?=[A-Za-z0-9])", r"\1 ", fixed)
+    fixed = re.sub(r",(?=[A-Za-z])", ", ", fixed)
+    fixed = re.sub(r"(?<=[A-Za-z0-9])\.(?=[A-Za-z])", ". ", fixed)
+    fixed = re.sub(r"%(?=[A-Za-z0-9])", "% ", fixed)
+    fixed = re.sub(r"(?<=[A-Za-z])(?=[0-9])", " ", fixed)
+    fixed = re.sub(r"(?<=[0-9])(?=[A-Za-z])", " ", fixed)
+    fixed = re.sub(r"([A-Za-z]+'s)(?=[A-Za-z])", r"\1 ", fixed)
+    fixed = re.sub(r"([A-Za-z]+(?:'re|'ve|'ll|'d|'m|n't))(?=[A-Za-z])", r"\1 ", fixed)
+    fixed = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", fixed)
+    fixed = re.sub(r"\b([A-Za-z]{8,})\b", lambda m: split_long_english_token(m.group(1)), fixed)
+    fixed = re.sub(r"\s{2,}", " ", fixed)
+    return fixed.strip()
+
+
+def normalize_numeric_token(token: str) -> str:
+    """Normalize OCR symbol errors in numeric-like tokens."""
+    if "@" not in token:
+        return token
+    if not re.fullmatch(r"[@0-9,.\-+%]+", token):
+        return token
+    return token.replace("@", "0")
+
+
+def split_long_english_token(token: str) -> str:
+    """Split long glued English tokens into words when possible."""
+    if not token or len(token) < 8:
+        return token
+    if wordninja is None:
+        return token
+
+    # Keep short all-caps abbreviations untouched.
+    if token.isupper() and len(token) <= 8:
+        return token
+
+    parts = wordninja.split(token)
+    if len(parts) <= 1:
+        return token
+    if "".join(parts).lower() != token.lower():
+        return token
+
+    # Preserve original case by slicing based on segmented lengths.
+    restored: list[str] = []
+    pos = 0
+    for part in parts:
+        end = pos + len(part)
+        restored.append(token[pos:end])
+        pos = end
+    return " ".join(restored)
 
 
 def maybe_parse_json(value: str) -> Any:
@@ -155,7 +234,7 @@ def main() -> int:
         print(
             json.dumps(
                 {"error": f"Input image not found: {image_path}"},
-                ensure_ascii=False,
+                ensure_ascii=True,
             )
         )
         return 2
@@ -177,6 +256,7 @@ def main() -> int:
             text = " ".join(lines).strip()
         else:
             text = "\n".join(lines).strip()
+        text = fix_english_spacing(text)
 
         payload = {
             "text": text,
@@ -184,10 +264,10 @@ def main() -> int:
             "lang": args.lang,
             "task": args.task,
         }
-        print(json.dumps(payload, ensure_ascii=False))
+        print(json.dumps(payload, ensure_ascii=True))
         return 0
     except Exception as exc:  # pylint: disable=broad-except
-        print(json.dumps({"error": str(exc)}, ensure_ascii=False))
+        print(json.dumps({"error": str(exc)}, ensure_ascii=True))
         return 1
 
 

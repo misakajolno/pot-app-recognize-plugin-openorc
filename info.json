@@ -1,5 +1,6 @@
 {
   "id": "plugin.com.pot-app.openorc",
+  "version": 2,
   "plugin_type": "recognize",
   "icon": "openorc.png",
   "display": "OpenOCR",

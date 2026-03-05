@@ -100,6 +100,8 @@ function withTimeout(promise, timeoutMs) {
 
 function buildArgs(runtime, imagePath, lang) {
     return [
+        "-X",
+        "utf8",
         normalizePath(runtime.bridgeScriptPath),
         "--image",
         normalizePath(imagePath),

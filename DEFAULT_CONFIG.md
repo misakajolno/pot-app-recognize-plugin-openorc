@@ -25,7 +25,7 @@
 ## 首次使用检查清单
 
 1. `python -X utf8 -m pip show openocr-python` 有输出版本号（应为 `0.1.5`）。
-2. Pot 安装插件包：`.tmp/dist/plugin.com.pot-app.openorc.potext`。
-3. 首次 OCR 会下载模型到：`C:/Users/Citlali/.cache/openocr/`。
-4. 首次识别可能较慢，等待 10~60 秒属于正常。
-
+2. `python -X utf8 -m pip show wordninja` 有输出版本号（建议 `2.0.0`）。
+3. Pot 安装插件包：`.tmp/dist/plugin.com.pot-app.openorc.potext`。
+4. 首次 OCR 会下载模型到：`C:/Users/Citlali/.cache/openocr/`。
+5. 首次识别可能较慢，等待 10~60 秒属于正常。

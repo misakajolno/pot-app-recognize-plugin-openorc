@@ -21,6 +21,7 @@ if (-not $pluginId.StartsWith("plugin")) {
 }
 
 $requiredEntries = @(
+    "VERSION",
     "info.json",
     "main.js",
     "README.md",
@@ -32,6 +33,18 @@ foreach ($entry in $requiredEntries) {
     if (-not (Test-Path $entry)) {
         throw "Required file missing: $entry"
     }
+}
+
+$versionText = (Get-Content -Path "VERSION" -Raw -Encoding UTF8).Trim()
+$versionNumber = 0
+if (-not [int]::TryParse($versionText, [ref]$versionNumber)) {
+    throw "Invalid VERSION file: expected integer, got '$versionText'"
+}
+if (-not $info.PSObject.Properties.Match("version")) {
+    throw "Invalid info.json: missing version field"
+}
+if ([int]$info.version -ne $versionNumber) {
+    throw "Version mismatch: info.json version=$($info.version), VERSION=$versionNumber"
 }
 
 $outputPath = if ([System.IO.Path]::IsPathRooted($OutputDir)) {
