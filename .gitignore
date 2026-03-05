@@ -1,0 +1,7 @@
+dist/
+.tmp/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
